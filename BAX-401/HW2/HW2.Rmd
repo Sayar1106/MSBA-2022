@@ -125,8 +125,11 @@ summary(mod5)
 ```{r}
 # Remove aggregate and empty columns
 df <- subset(df, select = -c(Months, ADV_Total, ADV_Offline, ADV_online, SocialMedia))
-step_model_both <-step(lm(df$`Sales (units)` ~ . -1, data=df), direction="backward")
+df <-df[2:42,]
+step_model_both <-step(lm(df$`Sales (units)` ~ ., data=df), direction="backward")
 summary(step_model_both)
+AIC(step_model_both)
+BIC(step_model_both)
 ```
 
 ## Use new regression
@@ -135,4 +138,132 @@ summary(step_model_both)
 # Keep one. Remove the other one.
 final_tuned_model <-lm(df$`Sales (units)` ~ df$Catalogs_Winback + df$Catalogs_NewCust + df$Search + df$Retargeting + df$lagSales - 1)
 summary(final_tuned_model)
+AIC(final_tuned_model)
+BIC(final_tuned_model)
+```
+
+## Synergy
+```{r}
+step_model_synergy <-step(lm(df$`Sales (units)` ~ df$Catalogs_Winback + df$Catalogs_NewCust + df$Search + df$Retargeting + df$lagSales + df$Catalogs_Winback * df$Catalogs_NewCust + df$Catalogs_Winback * df$Search + df$Catalogs_Winback * df$Retargeting + df$Catalogs_Winback + df$Catalogs_NewCust * df$Search + df$Catalogs_NewCust * df$Retargeting + df$Search*df$Retargeting - 1), direction="backward")
+
+summary(step_model_synergy)
+AIC(step_model_synergy)
+BIC(step_model_synergy)
+```
+
+# Part 2 - With Log transformation
+
+# Read Data
+```{r}
+df <-read_excel("HW2_MultimediaHW.xlsx")
+```
+
+# Variable Transformation
+```{r}
+for (i in 3:ncol(df)) {
+  df[,i] <- log(1 + df[, i])
+}
+lagSales <-Lag(df$`Sales (units)`,shift=1)
+df$lagSales <-lagSales
+```
+
+## Plot again
+```{r}
+corrplot::corrplot(cor(df), method = 'number')
+```
+
+## Use stepwise regression with intercept
+```{r}
+# Remove aggregate and empty columns
+df <- subset(df, select = -c(Months, ADV_Total, ADV_Offline, ADV_online, SocialMedia))
+df <-df[2:42,]
+step_model_both <-step(lm(df$`Sales (units)` ~ ., data=df), direction="both")
+summary(step_model_both)
+AIC(step_model_both)
+BIC(step_model_both)
+```
+
+## Use stepwise regression without intercept
+```{r}
+step_model_both <-step(lm(df$`Sales (units)` ~ . - 1, data=df), direction="both")
+summary(step_model_both)
+AIC(step_model_both)
+BIC(step_model_both)
+```
+
+## With Portals Removed
+```{r}
+lm_final_log_nosynergy <-lm(lm(formula = df$`Sales (units)` ~ Catalogs_ExistCust + Catalogs_Winback + 
+    Catalogs_NewCust + Search + Newsletter + Retargeting  - 
+    1, data = df))
+summary(lm_final_log_nosynergy)
+AIC(lm_final_log_nosynergy)
+BIC(lm_final_log_nosynergy)
+```
+
+## Synergy bbetween Retargetting with Search and Newsletter
+```{r}
+lm_final_log_nosynergy <-lm(lm(formula = df$`Sales (units)` ~ Catalogs_ExistCust + Catalogs_Winback + 
+    Catalogs_NewCust + Search + Newsletter + Retargeting + Retargeting * Search + Retargeting * Newsletter - 
+    1, data = df))
+summary(lm_final_log_nosynergy)
+AIC(lm_final_log_nosynergy)
+BIC(lm_final_log_nosynergy)
+```
+
+## Synergy between Retargeting vs Newsletter vs Search
+```{r}
+lm_final_log_nosynergy <-lm(formula = df$`Sales (units)` ~ Catalogs_ExistCust + Catalogs_Winback + 
+    Catalogs_NewCust + Search + Newsletter + Retargeting + Retargeting * Search * Newsletter - 
+    1, data = df)
+summary(lm_final_log_nosynergy)
+AIC(lm_final_log_nosynergy)
+BIC(lm_final_log_nosynergy)
+```
+
+## Offline vars + Search
+```{r}
+lm_final_log_nosynergy <-lm(formula = df$`Sales (units)` ~ Catalogs_ExistCust + Catalogs_Winback + 
+    Catalogs_NewCust + Search - 1, data=df)
+summary(lm_final_log_nosynergy)
+AIC(lm_final_log_nosynergy)
+BIC(lm_final_log_nosynergy)
+```
+
+## Synergy
+```{r}
+step_model_synergy <-step(lm(df$`Sales (units)` ~ df$Catalogs_ExistCust + df$Catalogs_Winback + df$Catalogs_NewCust + df$Search + df$Retargeting + df$Newsletter + df$Catalogs_ExistCust * df$Catalogs_Winback + df$Catalogs_ExistCust * df$Catalogs_NewCust + df$Catalogs_ExistCust * df$Search + df$Catalogs_ExistCust * df$Newsletter + df$Catalogs_ExistCust * df$Retargeting +  df$Catalogs_Winback * df$Catalogs_NewCust + df$Catalogs_Winback * df$Search + df$Catalogs_Winback * df$Retargeting + df$Catalogs_Winback * df$Newsletter + df$Catalogs_NewCust * df$Search + df$Catalogs_NewCust * df$Retargeting + df$Catalogs_NewCust * df$Newsletter + df$Search*df$Retargeting + df$Newsletter * df$Retargeting * df$Search - 1), direction="backward")
+
+summary(step_model_synergy)
+AIC(step_model_synergy)
+BIC(step_model_synergy)
+```
+
+## Removing some of the irrelevant terms
+```{r}
+lm_final_log_synergy <-lm(formula = df$`Sales (units)` ~ df$Catalogs_ExistCust + df$Catalogs_Winback + 
+    df$Catalogs_NewCust + df$Search + df$Retargeting + df$Newsletter + 
+    df$Catalogs_ExistCust:df$Catalogs_NewCust +  
+    df$Catalogs_Winback:df$Retargeting + 
+    df$Search:df$Retargeting + 
+    df$Retargeting:df$Newsletter + df$Search:df$Newsletter + 
+    df$Search:df$Retargeting:df$Newsletter - 1)
+summary(lm_final_log_synergy)
+AIC(lm_final_log_synergy)
+BIC(lm_final_log_synergy)
+```
+
+## Winback and Retargeting removed
+```{r}
+lm_final_log_synergy <-lm(formula = df$`Sales (units)` ~ df$Catalogs_ExistCust + df$Catalogs_Winback + 
+    df$Catalogs_NewCust + df$Search + df$Retargeting + df$Newsletter + 
+    df$Catalogs_ExistCust:df$Catalogs_NewCust +  
+    df$Search:df$Retargeting + 
+    df$Retargeting:df$Newsletter + df$Search:df$Newsletter + 
+    df$Search:df$Retargeting:df$Newsletter - 1)
+summary(lm_final_log_synergy)
+AIC(lm_final_log_synergy)
+BIC(lm_final_log_synergy)
+```
+
 ```
