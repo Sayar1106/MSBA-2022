@@ -5,6 +5,12 @@ date: "2022-10-26"
 output: html_document
 ---
 
+# Reading Libraries
+```{r}
+library(readxl)
+library(Hmisc)
+```
+
 # Read Data
 ```{r}
 df <-read_excel("HW2_MultimediaHW.xlsx")
