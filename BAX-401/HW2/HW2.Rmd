@@ -144,7 +144,7 @@ BIC(final_tuned_model)
 
 ## Synergy
 ```{r}
-step_model_synergy <-step(lm(df$`Sales (units)` ~ df$Catalogs_Winback + df$Catalogs_NewCust + df$Search + df$Retargeting + df$lagSales + df$Catalogs_Winback * df$Catalogs_NewCust + df$Catalogs_Winback * df$Search + df$Catalogs_Winback * df$Retargeting + df$Catalogs_Winback + df$Catalogs_NewCust * df$Search + df$Catalogs_NewCust * df$Retargeting + df$Search*df$Retargeting - 1), direction="backward")
+step_model_synergy <-step(lm(df$`Sales (units)` ~ df$Catalogs_Winback + df$Catalogs_NewCust + df$Search + df$Retargeting + df$lagSales + df$Catalogs_Winback * df$Catalogs_NewCust + df$Catalogs_Winback * df$Search + df$Catalogs_Winback * df$Retargeting  + df$Catalogs_NewCust * df$Search + df$Catalogs_NewCust * df$Retargeting + df$Search*df$Retargeting - 1), direction="backward")
 
 summary(step_model_synergy)
 AIC(step_model_synergy)
