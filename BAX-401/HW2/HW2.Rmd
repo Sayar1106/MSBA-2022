@@ -1,0 +1,132 @@
+---
+title: "BAX-401-HW2"
+author: "Sayar Banerjee"
+date: "2022-10-26"
+output: html_document
+---
+
+# Read Data
+```{r}
+df <-read_excel("HW2_MultimediaHW.xlsx")
+```
+
+
+# Descriptive Statistics
+
+## Sales with ADV_Total, ADV_Offline, ADV_Online
+```{r}
+scatter.smooth(df$`Sales (units)`, df$ADV_Total)
+scatter.smooth(df$`Sales (units)`, df$ADV_Offline)
+scatter.smooth(df$`Sales (units)`, df$ADV_Online)
+```
+
+```{r}
+corrplot::corrplot(cor(df), method = 'number')
+```
+
+## Transform Variables (Square Root) and Sales lag
+```{r}
+for (i in 3:ncol(df)) {
+  df[,i] <- sqrt(df[, i])
+}
+lagSales <-Lag(df$`Sales (units)`,shift=1)
+df$lagSales <-lagSales
+```
+
+## Plot again
+```{r}
+corrplot::corrplot(cor(df), method = 'number')
+```
+## Build model
+
+### LagSales, ADV_OFfline, ADV_online, lagSales * ADV_Offline
+```{r}
+lagSales <-Lag(df$`Sales (units)`,shift=1)
+
+synergy_without_intercept <-lm(df$`Sales (units)` ~ lagSales + df$ADV_Offline + df$ADV_online + lagSales * df$ADV_Offline - 1)
+summary(synergy_without_intercept)
+AIC(synergy_without_intercept)
+BIC(synergy_without_intercept)
+```
+
+### LagSales, Offline, Search, Portal, Search * Portals
+```{r}
+
+synergy_without_intercept <-lm(df$`Sales (units)` ~ lagSales + df$ADV_Offline + df$Search + df$Portals + df$Search * df$Portals  - 1)
+summary(synergy_without_intercept)
+AIC(synergy_without_intercept)
+BIC(synergy_without_intercept)
+```
+
+### LagSales, Offline, Search, Portal, LagSales * Offline * Search, LagSales * Offline * Portal
+```{r}
+lagSales <-Lag(df$`Sales (units)`,shift=1)
+
+synergy_without_intercept <-lm(df$`Sales (units)` ~ lagSales + df$ADV_Offline + df$Search + df$Portals + df$Search * df$Portals + df$ADV_Offline * lagSales +  df$ADV_Offline * lagSales * df$Portals + df$ADV_Offline * lagSales *  df$Search + df$ADV_Offline * df$Search + df$ADV_Offline * df$Portals + lagSales * df$Search + lagSales * df$Portals + lagSales * df$ADV_Offline * df$Search * df$Portals - 1)
+summary(synergy_without_intercept)
+AIC(synergy_without_intercept)
+BIC(synergy_without_intercept)
+```
+
+### LagSales, ADV_Offline, Portal, LagSales * Portals
+```{r}
+synergy_without_intercept <-lm(df$`Sales (units)` ~ lagSales + df$ADV_Offline + df$Portals + df$ADV_Offline * lagSales  - 1)
+summary(synergy_without_intercept)
+AIC(synergy_without_intercept)
+BIC(synergy_without_intercept)
+```
+
+### LagSales, ADV_Offline, Search, ADV_Offline * Search
+```{r}
+synergy_without_intercept <-lm(df$`Sales (units)` ~ lagSales + df$ADV_Offline + df$Search + df$ADV_Offline * lagSales  - 1)
+summary(synergy_without_intercept)
+AIC(synergy_without_intercept)
+BIC(synergy_without_intercept)
+```
+
+### Looking at interaction
+```{r}
+mod1 <-lm(df$`Sales (units)` ~ df$ADV_online + df$ADV_Offline - 1)
+summary(mod1)
+AIC(mod1)
+BIC(mod1)
+
+mod2 <-lm(df$`Sales (units)` ~ df$ADV_online + df$ADV_Offline + df$ADV_online * df$ADV_Offline - 1)
+summary(mod2)
+AIC(mod2)
+BIC(mod2)
+
+mod3 <-lm(df$`Sales (units)` ~ lagSales + df$ADV_online + df$ADV_Offline - 1)
+summary(mod3)
+AIC(mod3)
+BIC(mod3)
+
+mod4 <-lm(df$`Sales (units)` ~ lagSales + df$ADV_online + df$ADV_Offline + df$ADV_online * df$ADV_Offline - 1)
+summary(mod4)
+AIC(mod4)
+BIC(mod4)
+
+#mod5 <-lm(df$`Sales (units)` ~ lagSales + df$ADV_Offline  - 1)
+#summary(mod5)
+#AIC(mod5)
+#BIC(mod5)
+
+mod5 <-lm(df$`Sales (units)` ~ lagSales + df$Search * df$Portals + df$Search + df$Portals - 1)
+summary(mod5)
+```
+
+## Use stepwise regression
+```{r}
+# Remove aggregate and empty columns
+df <- subset(df, select = -c(Months, ADV_Total, ADV_Offline, ADV_online, SocialMedia))
+step_model_both <-step(lm(df$`Sales (units)` ~ . -1, data=df), direction="backward")
+summary(step_model_both)
+```
+
+## Use new regression
+```{r}
+#Search/Portals can be removed based on the fact that they have a strong correlation with each other in the correlation plots.
+# Keep one. Remove the other one.
+final_tuned_model <-lm(df$`Sales (units)` ~ df$Catalogs_Winback + df$Catalogs_NewCust + df$Search + df$Retargeting + df$lagSales - 1)
+summary(final_tuned_model)
+```
