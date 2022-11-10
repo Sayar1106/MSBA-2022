@@ -1,0 +1,93 @@
+---
+title: "H.W-3"
+author: "Sayar Banerjee"
+date: "2022-11-09"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(tidyr)
+library(xlsx)
+library(Hmisc)
+library(MASS)
+library(caret)
+library(regclass)
+library(ISLR)
+library(boot)
+library(vcd)
+library(pROC)
+library (ROCR)
+```
+
+```{r}
+df1 <-read.xlsx("Assignment3HW3_Data.xlsx", sheetName = "Data 1")
+```
+
+## Part a.
+```{r}
+anova(df1$Joined., )
+```
+
+```{r}
+newdf1 <-c(df1$Month.Before, df1$Month.After)
+newdf1 <-data.frame(unlist(newdf1, use.names = FALSE))
+colnames(newdf1) <-c("Revenue")
+newdf1$treat <-c(rep(0, nrow(df1)), rep(1, nrow(df1)))
+newdf1$joined <-c(df1$Joined., df1$Joined.)
+
+glma <-lm(Revenue ~ treat * joined, data=newdf1)
+summary(glma)
+```
+
+## Part b.
+```{r}
+
+df2 <-read.xlsx("Assignment3HW3_Data.xlsx", sheetName = "Data 2")
+df2$Joined. <-as.factor(as.numeric(df2$Joined.))
+df2$X.Churned.at.3.months.after.launch.of.the.online.community <-as.factor(as.numeric(df2$X.Churned.at.3.months.after.launch.of.the.online.community))
+
+
+glmb <-glm(X.Churned.at.3.months.after.launch.of.the.online.community ~ Joined. + Customer.Age.with.Firm.at.time.of.launching.the.online.community + Average.Spend.Last.3.months.of.Life.with.the.firm, data=df2, family=binomial(link="logit"))
+summary(glmb)
+
+confmat<-confusion_matrix(glmb)
+confmat
+```
+
+```{r}
+df2_scaled <-df2 %>%
+  dplyr::mutate_at(c('Customer.Age.with.Firm.at.time.of.launching.the.online.community', 
+              'Average.Spend.Last.3.months.of.Life.with.the.firm'), ~(scale(.) %>% as.vector))
+
+
+glmb <-glm(X.Churned.at.3.months.after.launch.of.the.online.community ~ Joined. + df2_scaled$Customer.Age.with.Firm.at.time.of.launching.the.online.community + df2_scaled$Average.Spend.Last.3.months.of.Life.with.the.firm, data=df2_scaled, family=binomial(link="logit"))
+summary(glmb)
+
+probchurn<-predict(glmb,newdata=df2_scaled,type="response")
+probchurn <-ifelse(probchurn > 0.5, 1, 0)
+confmat<-confusionMatrix(data=as.factor(probchurn), reference=as.factor(df2$X.Churned.at.3.months.after.launch.of.the.online.community), positive="1")
+confmat
+```
+
+## Part c.
+```{r}
+df3 <-read.xlsx("Assignment3HW3_Data.xlsx", sheetName = "Data 3")
+df3$diff <-df3$Month.After - df3$Month.Before
+
+df3_scaled <-df3 %>%
+  dplyr::mutate_at(c('Customer.Age.with.Firm.at.time.of.launching.the.online.community', 
+              'Average.Spend.Last.3.months.of.Life.with.the.firm'), ~(scale(.) %>% as.vector))
+
+df3$Joined. <-as.factor(as.numeric(df3$Joined.))
+df3$Churned.at.3.months <-as.factor(as.numeric(df3$Churned.at.3.months))
+glmc <-glm(df3_scaled$Churned.at.3.months ~ df3_scaled$Joined. + df3_scaled$Average.Spend.Last.3.months.of.Life.with.the.firm + df3_scaled$Customer.Age.with.Firm.at.time.of.launching.the.online.community + df3_scaled$Campaign.Organic, data=df3_scaled, family=binomial(link="logit"))
+summary(glmc)
+
+
+probchurn<-predict(glmc,newdata=df3,type="response")
+probchurn <-ifelse(probchurn > 0.5, 1, 0)
+
+confmat<-confusionMatrix(data=as.factor(probchurn), reference=as.factor(df3$Churned.at.3.months), positive="1")
+confmat
+```
